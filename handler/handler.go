@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -78,4 +79,25 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 // 上传完成路由函数
 func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Upload finished.")
+}
+
+// 文件信息查询接口
+func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
+
+	//解析请求中的表单和URl参数
+	r.ParseForm()
+
+	//从请求参数中取得第一个filehash
+	fileHash := r.Form["filehash"][0]
+	fmeta := meta.GetFileMeta(fileHash)
+
+	//把结构体转为json
+	data, err := json.Marshal(fmeta)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf("Failed to get filemeta,err: %v\n", err)
+		return
+	}
+
+	w.Write(data)
 }
