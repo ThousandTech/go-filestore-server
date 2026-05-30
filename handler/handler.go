@@ -140,3 +140,58 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	//返回响应
 	w.Write(data)
 }
+
+// 文件重命名接口
+func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	//解析参数
+	r.ParseForm()
+
+	//获取参数
+	opType := r.Form.Get("op")
+	filesha1 := r.Form.Get("filehash")
+	newFileName := r.Form.Get("filename")
+
+	//操作码不符
+	if opType != "0" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	//操作不符
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	//重命名
+	curFileMeta := meta.GetFileMeta(filesha1)
+	curFileMeta.FileName = newFileName
+	meta.UpdateFileMeta(curFileMeta)
+
+	//返回json响应
+	data, err := json.Marshal(curFileMeta)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf("Failed to get filemeta,err: %v\n", err)
+		return
+	}
+	w.Write(data)
+
+}
+
+// 删除文件及元信息接口
+func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	//解析参数
+	r.ParseForm()
+
+	//拿到参数
+	filesha1 := r.Form.Get("filehash")
+
+	//删除磁盘文件
+	fmeta := meta.GetFileMeta(filesha1)
+	os.Remove(fmeta.Location)
+
+	//移除元信息并响应
+	meta.RemoveFileMeta(filesha1)
+	w.WriteHeader(http.StatusOK)
+}
