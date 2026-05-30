@@ -13,6 +13,8 @@ func main() {
 	http.HandleFunc("/file/upload/suc", handler.UploadSucHandler)
 	//获取文件信息路由
 	http.HandleFunc("/file/meta", handler.GetFileMetaHandler)
+	//文件下载路由
+	http.HandleFunc("/file/download", handler.DownloadHandler)
 
 	//启动服务器，监听8080
 	err := http.ListenAndServe(":8080", nil)

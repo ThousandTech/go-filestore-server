@@ -72,6 +72,8 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		//跳转到上传成功页面，code是302临时重定向
 		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
 
+		fmt.Printf("Sha1 of the %s is %s\n", filemeta.FileName, filemeta.FileSha1)
+
 	}
 
 }
@@ -88,7 +90,7 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	//从请求参数中取得第一个filehash
-	fileHash := r.Form["filehash"][0]
+	fileHash := r.Form.Get("filehash")
 	fmeta := meta.GetFileMeta(fileHash)
 
 	//把结构体转为json
@@ -99,5 +101,42 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//返回响应
+	w.Write(data)
+}
+
+// 文件下载接口
+func DownloadHandler(w http.ResponseWriter, r *http.Request) {
+
+	//解析参数
+	r.ParseForm()
+	fsha1 := r.Form.Get("filehash")
+
+	//获取文件位置并打开
+	fmeta := meta.GetFileMeta(fsha1)
+	file, err := os.Open(fmeta.Location)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf("Failed to get target file,err: %v\n", err)
+		return
+	}
+
+	//收尾关闭句柄
+	defer file.Close()
+
+	//读取全部文件内容
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf("Failed to read target file,err: %v\n", err)
+		return
+	}
+
+	//将文件内容作为下载响应返回给服务器
+	//二进制数据流，不作为页面显示
+	w.Header().Set("Content-Type", "application/octet-stream")
+	//附件触发下载
+	w.Header().Set("Content-Disposition", "attachment;filename=\""+fmeta.FileName+"\"")
+	//返回响应
 	w.Write(data)
 }
